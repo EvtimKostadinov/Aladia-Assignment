@@ -1,0 +1,47 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: gateway
+    ports:
+      - '3000:3000'
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_HOST=authentication
+      - AUTH_SERVICE_PORT=3001
+    depends_on:
+      - authentication
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run start:dev gateway
+
+  authentication:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: authentication
+    ports:
+      - '3001:3001'
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/auth_db
+      - AUTH_PORT=3001
+    depends_on:
+      - mongo
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run start:dev authentication
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
