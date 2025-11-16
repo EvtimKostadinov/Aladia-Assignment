@@ -17,29 +17,21 @@ The project demonstrates a scalable and maintainable architecture following the 
 
 ## 🏛️ Architecture Overview
 
-The system is composed of two main services that communicate over a private network. This separation ensures that the public-facing API is decoupled from the core business logic and data layer.
+The system is designed with a clean separation of concerns, where a public-facing Gateway delegates all business logic to a private microservice.
 
-+-----------------+     +--------------------------+     +-------------------------------+     +-----------------+
-|                 |     |                          |     |                               |     |                 |
-|     Client      |---->|   Gateway (HTTP REST)    |---->|  Authentication (TCP Micro)   |---->|    MongoDB      |
-| (Postman, etc.) |     |      (apps/gateway)      |     |   (apps/authentication)       |     |   (Database)    |
-|                 |     |                          |     |                               |     |                 |
-+-----------------+     +--------------------------+     +-------------------------------+     +-----------------+
-                           |                          |     |                               |
-                           |- Handles HTTP Requests   |     |- Contains Business Logic     |
-                           |- Validates DTOs          |     |- Persists User Data          |
-                           |- Exposes Swagger Docs    |     |- Hashes Passwords            |
-                           +--------------------------+     +-------------------------------+
+The request lifecycle flows sequentially through these components:
+**`Client`** → **`Gateway`** → **`Authentication Service`** → **`Database`**
 
-apps/gateway: The public entry point. It exposes a REST API, validates incoming requests, and communicates with other microservices. It contains no business logic.
+Here is a breakdown of each component's role:
 
-apps/authentication: A private TCP-based microservice. It handles all user-related business logic, password hashing, and database interactions.
+| Component | Location & Type | Key Responsibilities |
+| :--- | :--- | :--- |
+| **API Gateway** | `apps/gateway` <br/> (HTTP REST Service) | • Exposes the public REST API endpoints.<br/>• Validates all incoming request data (DTOs).<br/>• Forwards requests to the appropriate microservice via TCP.<br/>• Contains no business logic. |
+| **Authentication**| `apps/authentication` <br/> (TCP Microservice) | • Contains all core business logic for user management.<br/>• Handles user creation, password hashing, and data retrieval.<br/>• Communicates directly with the database. |
+| **Database** | MongoDB <br/> (Docker Container) | • Persists all user data.<br/>• Accessed exclusively by the Authentication service. |
+| **Shared Libs** | `/` (Root) <br/> (Monorepo Libraries) | • `common`: Shared DTOs and RTOs.<br/>• `config`: Reusable configuration module.<br/>• `core`: Centralized networking service for microservice communication. |
 
-/ (Root): Contains shared code used across services, such as DTOs (common), configuration modules (config), and networking abstractions (core).
-
-- **`apps/gateway`**: The public entry point. It exposes a REST API, validates incoming requests, and communicates with other microservices. It contains no business logic.
-- **`apps/authentication`**: A private TCP-based microservice. It handles all user-related business logic, password hashing, and database interactions.
-- **`/`** (Root): Contains shared code used across services, such as DTOs (`common`), configuration modules (`config`), and networking abstractions (`core`).
+<br/>
 
 ## 🛠️ Tech Stack
 
@@ -160,4 +152,5 @@ You can use the interactive Swagger UI or any API client like Postman or `curl` 
 - **Robust Error Handling**: The `authentication` service throws `RpcException`. The Gateway gracefully catches this and transforms it into a standard `HttpException`, ensuring that internal errors are correctly propagated to the client with the right status code.
 - **Shared Configuration Module**: A dynamic `SharedConfigModule` provides reusable, validated, and type-safe configuration to any application in the monorepo, enforcing consistency.
 - **Repository Pattern**: The `UsersRepository` strictly separates database logic from business logic in the service layer. This improves testability and maintainability by isolating data access concerns.
+
 
