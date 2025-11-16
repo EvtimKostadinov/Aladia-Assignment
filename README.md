@@ -19,32 +19,23 @@ The project demonstrates a scalable and maintainable architecture following the 
 
 The system is composed of two main services that communicate over a private network. This separation ensures that the public-facing API is decoupled from the core business logic and data layer.
 
-    graph LR
-        subgraph "Client"
-            C[Postman / Browser]
-        end
-
-        subgraph "Public Zone"
-            G[<b>Gateway App</b><br/>apps/gateway<br/><i>Handles HTTP, Validation, Swagger</i>]
-        end
-
-        subgraph "Private Network (Docker)"
-            A[<b>Authentication Microservice</b><br/>apps/authentication<br/><i>Business Logic & User Persistence</i>]
-            DB[(MongoDB)]
-        end
-
-        C -- HTTP REST API --> G
-        G -- TCP Message --> A
-        A -- Mongoose --> DB
-
-        style G fill:#f9f,stroke:#333,stroke-width:2px
-        style A fill:#ccf,stroke:#333,stroke-width:2px
++-----------------+     +--------------------------+     +-------------------------------+     +-----------------+
+|                 |     |                          |     |                               |     |                 |
+|     Client      |---->|   Gateway (HTTP REST)    |---->|  Authentication (TCP Micro)   |---->|    MongoDB      |
+| (Postman, etc.) |     |      (apps/gateway)      |     |   (apps/authentication)       |     |   (Database)    |
+|                 |     |                          |     |                               |     |                 |
++-----------------+     +--------------------------+     +-------------------------------+     +-----------------+
+                           |                          |     |                               |
+                           |- Handles HTTP Requests   |     |- Contains Business Logic     |
+                           |- Validates DTOs          |     |- Persists User Data          |
+                           |- Exposes Swagger Docs    |     |- Hashes Passwords            |
+                           +--------------------------+     +-------------------------------+
 
 apps/gateway: The public entry point. It exposes a REST API, validates incoming requests, and communicates with other microservices. It contains no business logic.
 
 apps/authentication: A private TCP-based microservice. It handles all user-related business logic, password hashing, and database interactions.
 
-libs/: Contains shared code used across services, such as DTOs (common), configuration modules (config), and networking abstractions (core).
+/ (Root): Contains shared code used across services, such as DTOs (common), configuration modules (config), and networking abstractions (core).
 
 - **`apps/gateway`**: The public entry point. It exposes a REST API, validates incoming requests, and communicates with other microservices. It contains no business logic.
 - **`apps/authentication`**: A private TCP-based microservice. It handles all user-related business logic, password hashing, and database interactions.
@@ -169,3 +160,4 @@ You can use the interactive Swagger UI or any API client like Postman or `curl` 
 - **Robust Error Handling**: The `authentication` service throws `RpcException`. The Gateway gracefully catches this and transforms it into a standard `HttpException`, ensuring that internal errors are correctly propagated to the client with the right status code.
 - **Shared Configuration Module**: A dynamic `SharedConfigModule` provides reusable, validated, and type-safe configuration to any application in the monorepo, enforcing consistency.
 - **Repository Pattern**: The `UsersRepository` strictly separates database logic from business logic in the service layer. This improves testability and maintainability by isolating data access concerns.
+
